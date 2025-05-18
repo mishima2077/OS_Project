@@ -11,7 +11,12 @@ enum class Opcode {
 
 class C312 {
 public:
+    // Constructor
+    C312(size_t memorySize);
+    C312();
+
 
 private:
-
+    std::vector<long> memory;
+    
 };
