@@ -50,8 +50,8 @@ private:
     void Cpy(long src, long dest);
     void Cpyi(long src, long dest);
     void Add(long address, long value);
-    void Addi(long src, long dest);
-    void Subi(long src, long dest);
+    void Addi(long dest, long address);
+    void Subi(long dest, long address);
     void Jif(long address, long target);
     void Push(long address);
     void Pop(long address);
