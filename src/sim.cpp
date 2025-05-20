@@ -7,8 +7,13 @@
 
 // Print memory to std::cerr
 void printMemory(const std::vector<long>& memory) {
-    for (size_t i = 0; i < memory.size(); ++i) {
+    for (size_t i = 0; i < 5; ++i) {
         std::cerr << "[" << i << "] = " << memory[i] << std::endl;
+    }
+
+    for (size_t i = 5; i < memory.size(); ++i) {
+        if (memory[i] != 0)
+            std::cerr << "[" << i << "] = " << memory[i] << std::endl;
     }
 }
 
@@ -66,7 +71,7 @@ int main(int argc, char* argv[]) {
     std::string filename = argv[1];
     int debug = std::stoi(argv[3]);
 
-    std::vector<long> memoryData(100, 0); // Adjust size as needed
+    std::vector<long> memoryData(200, 0); // Adjust size as needed
     std::unordered_map<long, std::string> instructions;
     loadProgramFromFile(filename, memoryData, instructions);
 

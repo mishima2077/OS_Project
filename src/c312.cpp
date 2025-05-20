@@ -255,6 +255,8 @@ void C312::SyscallPrn(long address) {
     if (address < 0 || address > memorySize)
         throw std::out_of_range("SYSCALL PRN: Address out of bounds.");
     std::cout << memory[address] << std::endl;
+
+    memory[2] = memory[address]; // Store the syscall result
 }
 
 void C312::SyscallHlt() {
