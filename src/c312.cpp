@@ -1,4 +1,4 @@
-#include "C312.h"
+#include "c312.h"
 #include <sstream>
 #include <stdexcept>
 #include <iostream>
@@ -13,7 +13,7 @@ C312::C312(size_t memorySize) {
     halted = false; // Set initial halted state to false
 }
 
-C312::C312() : C312(12000) { // Default memory size
+C312::C312() : C312(1024) { // Default memory size
     // Left empty intentionally
 }
 
@@ -25,11 +25,75 @@ bool C312::isHalted() const {
 
 // Fetch, decode, and execute the current instruction
 void C312::execute() {
-    std::string instruction = instructions[memory[0]];
+    long pc = memory[0];
+    if (instructions.count(pc) == 0) {
+        throw std::runtime_error("execute: No instruction at current PC.");
+    }
+    
+    std::string instruction = instructions[pc];
     Opcode op = decodeInstruction(instruction);
-    std::vector<std::string> splitted = splitInsctruction(instruction);
+    std::vector<std::string> tokens = splitInsctruction(instruction);
     
-    
+    // Execute based on opcode
+    switch (op) {
+        case Opcode::SET:
+            Set(parseOperand(tokens[1]), parseOperand(tokens[2]));
+            break;
+        case Opcode::CPY:
+            Cpy(parseOperand(tokens[1]), parseOperand(tokens[2]));
+            break;
+        case Opcode::CPYI:
+            Cpyi(parseOperand(tokens[1]), parseOperand(tokens[2]));
+            break;
+        case Opcode::ADD:
+            Add(parseOperand(tokens[1]), parseOperand(tokens[2]));
+            break;
+        case Opcode::ADDI:
+            Addi(parseOperand(tokens[1]), parseOperand(tokens[2]));
+            break;
+        case Opcode::SUBI:
+            Subi(parseOperand(tokens[1]), parseOperand(tokens[2]));
+            break;
+        case Opcode::JIF:
+            Jif(parseOperand(tokens[1]), parseOperand(tokens[2]));
+            break;
+        case Opcode::PUSH:
+            Push(parseOperand(tokens[1]));
+            break;
+        case Opcode::POP:
+            Pop(parseOperand(tokens[1]));
+            break;
+        case Opcode::CALL:
+            Call(parseOperand(tokens[1]));
+            break;
+        case Opcode::RET:
+            Ret();
+            break;
+        case Opcode::HLT:
+            Hlt();
+            break;
+        case Opcode::USER:
+            User();
+            break;
+        case Opcode::SYSCALL_PRN:
+            SyscallPrn(parseOperand(tokens[2]));
+            break;
+        case Opcode::SYSCALL_HLT:
+            SyscallHlt();
+            break;
+        case Opcode::SYSCALL_YIELD:
+            SyscallYield();
+            break;
+        default:
+            throw std::runtime_error("execute: Invalid or unimplemented opcode.");
+    }
+
+    // Increment instruction count.
+    ++memory[3];
+
+    // Increment PC if no jump occured.
+    if (memory[0] == pc)
+        ++memory[0];
 }
 
 void C312::loadProgram(const std::vector<long>& memoryData, 
@@ -37,9 +101,8 @@ void C312::loadProgram(const std::vector<long>& memoryData,
     // Load memory
     if (memoryData.size() > memorySize)
         throw std::runtime_error("loadProgram: Given memory size is larger than cpu memory.");
-    for (size_t i = 0; i < memoryData.size(); ++i) {
+    for (size_t i = 0; i < memoryData.size(); ++i)
         memory[i] = memoryData[i];
-    }
 
     // Load instructions
     instructions = instructionMap;
@@ -53,6 +116,12 @@ void C312::loadProgram(const std::vector<long>& memoryData,
 
 const std::vector<long>& C312::getMemory() const {
     return memory;
+}
+
+long C312::getMemoryI(long i) const {
+    if (i < 0 || i >= memorySize)
+        throw std::out_of_range("getMemoryI: out of bounds.");
+    return memory[i];
 }
 
 const std::unordered_map<long, std::string>& C312::getInstructions() const {
@@ -113,11 +182,11 @@ void C312::Addi(long dest, long address) {
     memory[dest] += memory[address];
 }
 
-void C312::Subi(long dest, long address) {
+void C312::Subi(long src, long dest) {
     // SUBI A1 A2: Subtract the contents of memory address A2 from address A1, put the result in A2.
-    if (address < 0 || address >= memorySize || dest < 0 || dest >= memorySize) 
+    if (src < 0 || src >= memorySize || dest < 0 || dest >= memorySize) 
         throw std::out_of_range("SUBI: Address out of range");
-    memory[dest] -= memory[address];
+    memory[dest] = memory[src] - memory[dest];
 }
 
 void C312::Jif(long address, long target) {
@@ -162,7 +231,7 @@ void C312::Call(long address) {
     if (memory[1] <= 0)
         throw std::out_of_range("CALL: Stack overflow.");
 
-    Push(memory[0]); // Push return address.
+    Push(memory[0] + 1); // Push return address (next instruction).
     memory[0] = address; // Call subroutine at address.
 }
 
@@ -182,15 +251,20 @@ void C312::User() {
 }
 
 void C312::SyscallPrn(long address) {
-    // Implement the SYSCALL PRN instruction
+    mode = Mode::KERNEL;
+    if (address < 0 || address > memorySize)
+        throw std::out_of_range("SYSCALL PRN: Address out of bounds.");
+    std::cout << memory[address] << std::endl;
 }
 
 void C312::SyscallHlt() {
-    // Implement the SYSCALL HLT instruction
+    // It will be implemented in C312 assembly.
+    mode = Mode::KERNEL;
 }
 
 void C312::SyscallYield() {
-    // Implement the SYSCALL YIELD instruction
+    // It will be implemented in C312 assembly.
+    mode = Mode::KERNEL;
 }
 
 // Helper Methods for Parsing and Decoding Instructions
@@ -216,34 +290,68 @@ Opcode C312::decodeInstruction(const std::string& instruction) const {
         return Opcode::INVALID;
 
     std::string op = tokens[0];
-    // Convert to uppercase just in case
     for (size_t i = 0; i < op.length(); ++i)
         op[i] = toupper(op[i]);
 
-    if (op == "SET") return Opcode::SET;
-    if (op == "CPY") return Opcode::CPY;
-    if (op == "CPYI") return Opcode::CPYI;
-    if (op == "ADD") return Opcode::ADD;
-    if (op == "ADDI") return Opcode::ADDI;
-    if (op == "SUBI") return Opcode::SUBI;
-    if (op == "JIF") return Opcode::JIF;
-    if (op == "PUSH") return Opcode::PUSH;
-    if (op == "POP") return Opcode::POP;
-    if (op == "CALL") return Opcode::CALL;
-    if (op == "RET") return Opcode::RET;
-    if (op == "HLT") return Opcode::HLT;
-    if (op == "USER") return Opcode::USER;
-    if (op == "SYSCALL") {
-        if (tokens.size() > 1) {
-            std::string sys = tokens[1];
-            for (size_t i = 0; i < sys.length(); ++i)
-                sys[i] = toupper(sys[i]);
-            if (sys == "PRN") return Opcode::SYSCALL_PRN;
-            if (sys == "HLT") return Opcode::SYSCALL_HLT;
-            if (sys == "YIELD") return Opcode::SYSCALL_YIELD;
-        }
+    Opcode code = Opcode::INVALID;
+    if (op == "SET") code = Opcode::SET;
+    else if (op == "CPY") code = Opcode::CPY;
+    else if (op == "CPYI") code = Opcode::CPYI;
+    else if (op == "ADD") code = Opcode::ADD;
+    else if (op == "ADDI") code = Opcode::ADDI;
+    else if (op == "SUBI") code = Opcode::SUBI;
+    else if (op == "JIF") code = Opcode::JIF;
+    else if (op == "PUSH") code = Opcode::PUSH;
+    else if (op == "POP") code = Opcode::POP;
+    else if (op == "CALL") code = Opcode::CALL;
+    else if (op == "RET") code = Opcode::RET;
+    else if (op == "HLT") code = Opcode::HLT;
+    else if (op == "USER") code = Opcode::USER;
+    else if (op == "SYSCALL" && tokens.size() > 1) {
+        std::string sys = tokens[1];
+        for (size_t i = 0; i < sys.length(); ++i)
+            sys[i] = toupper(sys[i]);
+        if (sys == "PRN") code = Opcode::SYSCALL_PRN;
+        else if (sys == "HLT") code = Opcode::SYSCALL_HLT;
+        else if (sys == "YIELD") code = Opcode::SYSCALL_YIELD;
     }
-    return Opcode::INVALID;    
+
+    // Validate token count for the decoded opcode
+    if (!isValidTokenCount(tokens, code))
+        return Opcode::INVALID;
+
+    return code;
+}
+
+// Helper to check if token count is valid for the given opcode
+bool C312::isValidTokenCount(const std::vector<std::string>& tokens, Opcode op) const {
+    if (tokens.empty()) return false;
+
+    switch (op) {
+        case Opcode::SET:
+        case Opcode::CPY:
+        case Opcode::CPYI:
+        case Opcode::ADD:
+        case Opcode::ADDI:
+        case Opcode::SUBI:
+        case Opcode::JIF:
+            return tokens.size() == 3;
+        case Opcode::PUSH:
+        case Opcode::POP:
+        case Opcode::CALL:
+            return tokens.size() == 2;
+        case Opcode::RET:
+        case Opcode::HLT:
+        case Opcode::USER:
+            return tokens.size() == 1;
+        case Opcode::SYSCALL_PRN:
+            return tokens.size() == 3;
+        case Opcode::SYSCALL_HLT:
+        case Opcode::SYSCALL_YIELD:
+            return tokens.size() == 2;
+        default:
+            return false;
+    }
 }
 
 // Parse an operand string into a long value

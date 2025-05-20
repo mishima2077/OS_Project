@@ -28,6 +28,7 @@ public:
 
     // Getters
     const std::vector<long>& getMemory() const;
+    long getMemoryI(long i) const;
     const std::unordered_map<long, std::string>& getInstructions() const;
     long getPC() const;
     Mode getMode() const;
@@ -51,7 +52,7 @@ private:
     void Cpyi(long src, long dest);
     void Add(long address, long value);
     void Addi(long dest, long address);
-    void Subi(long dest, long address);
+    void Subi(long src, long dest);
     void Jif(long address, long target);
     void Push(long address);
     void Pop(long address);
@@ -66,9 +67,6 @@ private:
     // Helper methods for parsing and decoding instructions
     std::vector<std::string> splitInsctruction(const std::string& instruction) const;
     Opcode decodeInstruction(const std::string& instruction) const;
+    bool isValidTokenCount(const std::vector<std::string>& tokens, Opcode op) const;
     long parseOperand(const std::string& operand) const;
-
-    // Mode switching
-    void switchToKernelMode();
-    void switchToUserMode();
 };
