@@ -6,7 +6,7 @@
 enum class Mode { KERNEL, USER };
 
 enum class Opcode {
-    SET, CPY, CPYI, ADD, ADDI, SUBI, JIF, PUSH, POP, CALL, RET, HLT, USER,
+    SET, CPY, CPYI, CPYI2, ADD, ADDI, SUBI, JIF, PUSH, POP, CALL, RET, HLT, USER,
     SYSCALL_PRN, SYSCALL_HLT, SYSCALL_YIELD, INVALID
 };
 
@@ -50,6 +50,7 @@ private:
     void Set(long value, long address);
     void Cpy(long src, long dest);
     void Cpyi(long src, long dest);
+    void Cpyi2(long src, long dest);
     void Add(long address, long value);
     void Addi(long dest, long address);
     void Subi(long src, long dest);

@@ -7,14 +7,16 @@
 
 // Print memory to std::cerr
 void printMemory(const std::vector<long>& memory) {
-    for (size_t i = 0; i < 5; ++i) {
-        std::cerr << "[" << i << "] = " << memory[i] << std::endl;
-    }
-
-    for (size_t i = 5; i < memory.size(); ++i) {
+    std::cerr << "\n========== DEBUG: MEMORY STATE ==========\n";
+    std::cerr << "Program Counter [0]      : " << memory[0] << std::endl;
+    std::cerr << "Stack Pointer   [1]      : " << memory[1] << std::endl;
+    std::cerr << "Syscall Result  [2]      : " << memory[2] << std::endl;
+    std::cerr << "-----------------------------------------\n";
+    for (size_t i = 3; i < memory.size(); ++i) {
         if (memory[i] != 0)
-            std::cerr << "[" << i << "] = " << memory[i] << std::endl;
+            std::cerr << "Mem[" << i << "] = " << memory[i] << std::endl;
     }
+    std::cerr << "=========================================\n";
 }
 
 // Load program from file (each line: address instruction)
@@ -85,11 +87,13 @@ int main(int argc, char* argv[]) {
         printMemory(cpu.getMemory());
     } else if (debug == 1) {
         while (!cpu.isHalted()) {
+            std::cerr << "-----------------------------------------\n";
             cpu.execute();
             printMemory(cpu.getMemory());
         }
     } else if (debug == 2) {
         while (!cpu.isHalted()) {
+            std::cerr << "-----------------------------------------\n";
             cpu.execute();
             printMemory(cpu.getMemory());
             std::cerr << "Press Enter to continue..." << std::endl;

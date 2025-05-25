@@ -45,6 +45,9 @@ void C312::execute() {
         case Opcode::CPYI:
             Cpyi(parseOperand(tokens[1]), parseOperand(tokens[2]));
             break;
+        case Opcode::CPYI2:
+            Cpyi2(parseOperand(tokens[1]), parseOperand(tokens[2]));
+            break;
         case Opcode::ADD:
             Add(parseOperand(tokens[1]), parseOperand(tokens[2]));
             break;
@@ -166,6 +169,22 @@ void C312::Cpyi(long src, long dest) {
         throw std::out_of_range("CPYI: Indirect address out of range");
     
     memory[dest] = memory[indirectAdress];
+}
+
+void C312::Cpyi2(long src, long dest) {
+    // CPYI A1 A2: Copy the memory address indexed by A1 to memory address indexed by A2.
+    if (src < 0 || src >= memorySize || dest < 0 || dest >= memorySize) 
+        throw std::out_of_range("CPYI2: Address out of range");
+    
+    long indirectAdress = memory[src];
+    if (indirectAdress < 0 || indirectAdress >= memorySize) 
+        throw std::out_of_range("CPYI2: Indirect address out of range");
+
+    long indirectDest = memory[dest];
+    if (indirectDest < 0 || indirectDest >= memorySize)
+        throw std::out_of_range("CPYI2: Indirect dest out of range");
+    
+    memory[indirectDest] = memory[indirectAdress];
 }
 
 void C312::Add(long address, long value) {
@@ -299,6 +318,7 @@ Opcode C312::decodeInstruction(const std::string& instruction) const {
     if (op == "SET") code = Opcode::SET;
     else if (op == "CPY") code = Opcode::CPY;
     else if (op == "CPYI") code = Opcode::CPYI;
+    else if (op == "CPYI2") code = Opcode::CPYI2;
     else if (op == "ADD") code = Opcode::ADD;
     else if (op == "ADDI") code = Opcode::ADDI;
     else if (op == "SUBI") code = Opcode::SUBI;
@@ -333,6 +353,7 @@ bool C312::isValidTokenCount(const std::vector<std::string>& tokens, Opcode op) 
         case Opcode::SET:
         case Opcode::CPY:
         case Opcode::CPYI:
+        case Opcode::CPYI2:
         case Opcode::ADD:
         case Opcode::ADDI:
         case Opcode::SUBI:
