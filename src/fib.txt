@@ -4,7 +4,7 @@
 Begin Data Section
 0 0     # PC
 1 999   # SP
-10 5    # N - Print the first N terms
+10 10    # N - Print the first N terms
 11 1    # prev1
 12 0    # prev2
 13 0    # i
@@ -19,11 +19,11 @@ Begin Instruction Section
 1 SUBI 10 20        # temp = N - i
 2 JIF 20 30         # if N - i == 0, end
 
-3 SET 1 20          # temp = 1
-4 SUBI 13 20        # temp = i - 1
-5 JIF 20 40         # if i == 1, print prev2
+3 SET 0 20          # temp = 0
+4 SUBI 13 20        # temp = i - 0
+5 JIF 20 40         # if i == 0, print prev2
 
-6 SET 2 20          # temp = 2
+6 SET 1 20          # temp = 2
 7 SUBI 13 20        # temp = i - 2
 8 JIF 20 50         # if i == 2, print prev1
 
