@@ -325,17 +325,42 @@ void C312::SyscallPrn(long address) {
         throw std::out_of_range("SYSCALL PRN: Address out of bounds.");
     std::cout << memory[address] << std::endl;
 
+    long pc = memory[0];
+
+    // Setting up registers for syscall handler in os
+    memory[10] = (pc >= 1000) ? ((pc - 1000) / 1000 + 1) : 0; // Thread ID deduced from PC
+    memory[11] = 2;         // Syscsall Type: PRN
+    memory[12] = pc + 1;    // Return PC
+
+    memory[0] = 50;         // Calling syscall handler in os
+
     memory[2] = memory[address]; // Store the syscall result
 }
 
 void C312::SyscallHlt() {
-    // It will be implemented in C312 assembly.
     mode = Mode::KERNEL;
+
+    long pc = memory[0];
+
+    // Setting up registers for syscall handler in os
+    memory[10] = (pc >= 1000) ? ((pc - 1000) / 1000 + 1) : 0; // Thread ID deduced from PC
+    memory[11] = 1;         // Syscsall Type: HLT
+    memory[12] = pc + 1;    // Return PC
+
+    memory[0] = 50;         // Calling syscall handler in os
 }
 
 void C312::SyscallYield() {
-    // It will be implemented in C312 assembly.
     mode = Mode::KERNEL;
+
+    long pc = memory[0];
+
+    // Setting up registers for syscall handler in os
+    memory[10] = (pc >= 1000) ? ((pc - 1000) / 1000 + 1) : 0; // Thread ID deduced from PC
+    memory[11] = 0;         // Syscsall Type: YIELD
+    memory[12] = pc + 1;    // Return PC
+
+    memory[0] = 50;         // Calling syscall handler in os
 }
 
 void C312::handleIllegalUserAccess() {
@@ -345,7 +370,7 @@ void C312::handleIllegalUserAccess() {
     long pc = memory[0];
     long threadId = (pc >= 1000) ? ((pc - 1000) / 1000 + 1) : 0; // 0 for OS, 1 for first thread, etc.
     memory[5] = threadId;
-    // Set PC to OS handler (address 0)
+    // Set PC to OS (address 0)
     memory[0] = 0;
     // Switch to kernel mode
     mode = Mode::KERNEL;

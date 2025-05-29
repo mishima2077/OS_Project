@@ -6,6 +6,7 @@ Begin Data Section
 2 0
 3 0
 4 0     # OS Status, set to Startup
+5 0     # Currently running thread, disregarding OS
 
 # Thread Table (starts at 100, 10 cells per thread)
 # Fields: [ID, start, end, instr_used, halted, state, blocked, PC, SP, unused]
@@ -162,6 +163,7 @@ Begin Instruction Section
 3 SET 0 105
 4 SET 50 0
 
+# =======================================================================
 # Syscall Handler Subroutine
 # First, set the start and end times for os and calling thread
 
@@ -169,11 +171,11 @@ Begin Instruction Section
 # 10: Calling thread ID
 # 11: syscall type
 # 12: return PC
-# 13: PRN argument
 # 300: thread table base for calling thread
 # 301: fiels address
 
 50 CPY 3 101    # Start time for OS
+# FORGOT TO SET THE OS THREAD VALUES
 
 # Calculate thread table base for calling thread: 100 + (thread_id * 10)
 51 SET 100 300       # 300 = thread table base
@@ -221,9 +223,73 @@ Begin Instruction Section
 84 ADDI 301 300
 85 SET 12 307
 86 CPYI2 307 301    # Set its return PC
+87 SET 90 0         # continue
 
-87 HLT
+# Syscall type in 11: 0=YIELD, 1=HLT, 2=PRN
 
+# Check for PRN
+90 SET 2 308
+91 CPY 11 309
+92 SUBI 308 309
+93 JIF 309 120      # Jump to PRN subroutine
+
+# Check for HLT
+94 SET 1 308
+95 CPY 11 309
+96 SUBI 308 309
+97 JIF 309 110      # Jump to HLT subroutine
+
+# Otherwise, it's YIELD, we don't have to do anything
+# Just set PC to Scheduler subroutine
+98 SET 200 0
+
+# HLT handler:
+110 SET 4 301
+111 ADDI 301 300
+112 SET 1 305
+113 SET 305 306
+114 CPYI2 306 301   # Set halted to 1
+115 SET 200 0       # Jump to scheduler
+
+# PRN handler:
+120 SET 6 301
+121 ADDI 301 300
+122 SET 100 305
+123 SET 305 306
+124 CPYI2 306 301   # Set blocked counter to 100
+
+125 SET 5 301
+126 ADDI 301 300
+127 SET 2 305
+128 SET 305 306
+129 CPYI2 306 301   # Set state to blocked
+130 SET 200 0       # Jump to scheduler
+# =======================================================================
+
+# =======================================================================
+# Scheduler Subroutine
+# Important Memory Locations:
+# Mem[5]  : Contains last running thread, disregards the OS
+
+# Increment last running thread ID
+200 ADD 5 1
+201 CPY 5 301       # Candidate
+202 SET 11 311
+203 SUBI 311 310    # 311 = 11 - candidate
+204 JIF 311 250     # If candidate is 11, call check_halt subroutine
+                    # Checks if there is a thread to run, if not halts the OS
+
+# Check halted 
+205 SET 4 301
+206 ADDI 301 300
+207 CPYI 301 312    # 312 = halted field
+208 SET 1 313
+209 SUBI 313 312
+210 JIF 312 200     # If halted, try next state
+
+
+
+# =======================================================================
 
 # Thread 1 - Selection Sort (1000-1999)
 
