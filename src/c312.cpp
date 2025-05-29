@@ -121,12 +121,6 @@ const std::vector<long>& C312::getMemory() const {
     return memory;
 }
 
-long C312::getMemoryI(long i) const {
-    if (i < 0 || i >= memorySize)
-        throw std::out_of_range("getMemoryI: out of bounds.");
-    return memory[i];
-}
-
 const std::unordered_map<long, std::string>& C312::getInstructions() const {
     return instructions;
 }
@@ -149,6 +143,12 @@ void C312::Set(long value, long address) {
     // SET B A: Set the Ath memory location with number B.
     if (address < 0 || address >= memorySize) 
         throw std::out_of_range("SET: Address out of range");
+
+    if (mode == Mode::USER && address > 20 && address < 1000) {
+        handleIllegalUserAccess();
+        return;
+    }
+
     memory[address] = value;
 }
 
@@ -156,6 +156,12 @@ void C312::Cpy(long src, long dest) {
     // CPY A1 A2: Copy the content of memory location A1 to memory A2.
     if (src < 0 || src >= memorySize || dest < 0 || dest >= memorySize) 
         throw std::out_of_range("CPY: Address out of range");
+
+    if (mode == Mode::USER && ((src > 20 && src < 1000) || (dest > 20 && dest < 1000))) {
+        handleIllegalUserAccess();
+        return;
+    }
+
     memory[dest] = memory[src];
 }
 
@@ -167,6 +173,12 @@ void C312::Cpyi(long src, long dest) {
     long indirectAdress = memory[src];
     if (indirectAdress < 0 || indirectAdress >= memorySize) 
         throw std::out_of_range("CPYI: Indirect address out of range");
+
+    if (mode == Mode::USER && ((src > 20 && src < 1000) || (dest > 20 && dest < 1000) ||
+        (indirectAdress > 20 && indirectAdress < 1000))) {
+        handleIllegalUserAccess();
+        return;
+    }
     
     memory[dest] = memory[indirectAdress];
 }
@@ -183,6 +195,12 @@ void C312::Cpyi2(long src, long dest) {
     long indirectDest = memory[dest];
     if (indirectDest < 0 || indirectDest >= memorySize)
         throw std::out_of_range("CPYI2: Indirect dest out of range");
+
+    if (mode == Mode::USER && ((src > 20 && src < 1000) || (dest > 20 && dest < 1000) ||
+        (indirectAdress > 20 && indirectAdress < 1000) || (indirectDest > 20 && indirectDest < 1000))) {
+        handleIllegalUserAccess();
+        return;
+    }
     
     memory[indirectDest] = memory[indirectAdress];
 }
@@ -191,6 +209,12 @@ void C312::Add(long address, long value) {
     // ADD A B: Add number B to memory location A.
     if (address < 0 || address >= memorySize) 
         throw std::out_of_range("ADD: Address out of range");
+
+    if (mode == Mode::USER && address > 20 && address < 1000) {
+        handleIllegalUserAccess();
+        return;
+    }
+
     memory[address] += value;
 }
 
@@ -198,6 +222,12 @@ void C312::Addi(long dest, long address) {
     // ADDI A1 A2: Add the contents of memory address A2 to address A1.
     if (address < 0 || address >= memorySize || dest < 0 || dest >= memorySize) 
         throw std::out_of_range("ADDI: Address out of range");
+
+    if (mode == Mode::USER && ((address > 20 && address < 1000) || (dest > 20 && dest < 1000))) {
+        handleIllegalUserAccess();
+        return;
+    }
+
     memory[dest] += memory[address];
 }
 
@@ -205,6 +235,12 @@ void C312::Subi(long src, long dest) {
     // SUBI A1 A2: Subtract the contents of memory address A2 from address A1, put the result in A2.
     if (src < 0 || src >= memorySize || dest < 0 || dest >= memorySize) 
         throw std::out_of_range("SUBI: Address out of range");
+
+    if (mode == Mode::USER && ((src > 20 && src < 1000) || (dest > 20 && dest < 1000))) {
+        handleIllegalUserAccess();
+        return;
+    }
+
     memory[dest] = memory[src] - memory[dest];
 }
 
@@ -212,6 +248,11 @@ void C312::Jif(long address, long target) {
     // JIF A C: Set the CPU program counter with C if memory location A content is <= 0.
     if (address < 0 || address >= memorySize || target < 0 || target >= memorySize) 
         throw std::out_of_range("JIF: Address out of range");
+
+    if (mode == Mode::USER && ((address > 20 && address < 1000) || (target > 20 && target < 1000))) {
+        handleIllegalUserAccess();
+        return;
+    }
 
     if (memory[address] <= 0)
         memory[0] = target;
@@ -228,6 +269,10 @@ void C312::Push(long address) {
     if (memory[1] >= memorySize)
         throw std::out_of_range("PUSH: Invalid stack pointer");
 
+    if (mode == Mode::USER && address > 20 && address < 1000) {
+        handleIllegalUserAccess();
+        return;
+    }
 
     memory[--memory[1]] = address; // Decrement stack pointer and push address
 }
@@ -239,6 +284,11 @@ void C312::Pop(long address) {
 
     if (memory[1] >= memorySize)
         throw std::out_of_range("POP: Invalid stack pointer");
+
+    if (mode == Mode::USER && address > 20 && address < 1000) {
+        handleIllegalUserAccess();
+        return;
+    }
 
     memory[address] = memory[memory[1]++]; // Pop value from stack
 }
@@ -285,6 +335,19 @@ void C312::SyscallHlt() {
 
 void C312::SyscallYield() {
     // It will be implemented in C312 assembly.
+    mode = Mode::KERNEL;
+}
+
+void C312::handleIllegalUserAccess() {
+    // Set flag for illegal access
+    memory[4] = 1; // 1 = illegal access
+    // Deduce thread ID from PC
+    long pc = memory[0];
+    long threadId = (pc >= 1000) ? ((pc - 1000) / 1000 + 1) : 0; // 0 for OS, 1 for first thread, etc.
+    memory[5] = threadId;
+    // Set PC to OS handler (address 0)
+    memory[0] = 0;
+    // Switch to kernel mode
     mode = Mode::KERNEL;
 }
 

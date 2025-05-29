@@ -28,7 +28,6 @@ public:
 
     // Getters
     const std::vector<long>& getMemory() const;
-    long getMemoryI(long i) const;
     const std::unordered_map<long, std::string>& getInstructions() const;
     long getPC() const;
     Mode getMode() const;
@@ -64,6 +63,8 @@ private:
     void SyscallPrn(long address);
     void SyscallHlt();
     void SyscallYield();
+
+    void handleIllegalUserAccess();
 
     // Helper methods for parsing and decoding instructions
     std::vector<std::string> splitInsctruction(const std::string& instruction) const;

@@ -1,0 +1,248 @@
+# Operating System
+
+Begin Data Section
+0 0     # PC (OS starts at 0)
+1 999   # SP (OS stack pointer)
+2 0
+3 0
+4 0     # OS Status, set to Startup
+
+# Thread Table (starts at 100, 10 cells per thread)
+# Fields: [ID, start, end, instr_used, halted, state, blocked, PC, SP, unused]
+
+# ID: thread ID (0 to 10)
+# Start: Starting time of the thread
+# End: End time of the thread
+# Instr_used: How many instructions used since scheduled
+# Halted: 0-not halted, 1-halted
+# State: 0-ready, 1-running, 2-blocked
+# Blocked: remanining instruction counter for blocking
+# PC: Program counter where thread will continue
+# SP: Stack pointer of the thread
+
+# OS thread (thread 0)
+100 0    # ID
+101 0    # start time
+102 0    # end time
+103 0    # instructions used
+104 0    # halted
+105 1    # state (1 = running)
+106 0    # blocked counter
+107 0    # PC
+108 999  # SP
+109 0    # unused
+
+# Thread 1
+110 1
+111 0
+112 0
+113 0
+114 0
+115 0    # state (0 = ready)
+116 0
+117 1000 # PC
+118 1999 # SP
+119 0
+
+# Thread 2
+120 2
+121 0
+122 0
+123 0
+124 0
+125 0
+126 0
+127 2000
+128 2999
+129 0
+
+# Thread 3
+130 3
+131 0
+132 0
+133 0
+134 0
+135 0
+136 0
+137 3000
+138 3999
+139 0
+
+# Thread 4
+140 4
+141 0
+142 0
+143 0
+144 0
+145 0
+146 0
+147 4000
+148 4999
+149 0
+
+# Thread 5
+150 5
+151 0
+152 0
+153 0
+154 0
+155 0
+156 0
+157 5000
+158 5999
+159 0
+
+# Thread 6
+160 6
+161 0
+162 0
+163 0
+164 0
+165 0
+166 0
+167 6000
+168 6999
+169 0
+
+# Thread 7
+170 7
+171 0
+172 0
+173 0
+174 0
+175 0
+176 0
+177 7000
+178 7999
+179 0
+
+# Thread 8
+180 8
+181 0
+182 0
+183 0
+184 0
+185 0
+186 0
+187 8000
+188 8999
+189 0
+
+# Thread 9
+190 9
+191 0
+192 0
+193 0
+194 0
+195 0
+196 0
+197 9000
+198 9999
+199 0
+
+# Thread 10
+200 10
+201 0
+202 0
+203 0
+204 0
+205 0
+206 0
+207 10000
+208 10999
+209 0
+
+End Data Section
+
+Begin Instruction Section
+# OS Thread (0-999)
+0 SET 1 10
+1 SET 1014 12
+2 SET 1 115
+3 SET 0 105
+4 SET 50 0
+
+# Syscall Handler Subroutine
+# First, set the start and end times for os and calling thread
+
+# Mem locations:
+# 10: Calling thread ID
+# 11: syscall type
+# 12: return PC
+# 13: PRN argument
+# 300: thread table base for calling thread
+# 301: fiels address
+
+50 CPY 3 101    # Start time for OS
+
+# Calculate thread table base for calling thread: 100 + (thread_id * 10)
+51 SET 100 300       # 300 = thread table base
+52 CPY 10 302        # 302 = thread id (copy for loop)
+53 SET 0 303         # 303 = offset accumulator
+54 JIF 302 58        # If thread id == 0, skip loop
+55 ADD 303 10        # offset += 10
+56 ADD 302 -1        # thread id--
+57 SET 54 0          # loop back if not zero
+58 ADDI 300 303      # 300 = 100 + (thread_id * 10)
+
+# Set end time for calling thread
+59 SET 2 301        # 301 = offset for end time
+60 ADDI 301 300     # 301 = thread_base + offset
+61 SET 101 302      # 101 contains end time(OS start time)
+62 CPYI2 302 301    # Copy end time to end_time of calling thread
+
+63 SET 1 105      # OS state = running
+64 CPY 108 1      # Set actual SP to OS SP
+
+# Calculate instr_used and set it
+65 SET 1 301        # Offset for start time
+66 ADDI 301 300     # index for start time
+67 CPYI 301 304     # 304 = start time
+68 SET 2 301
+69 ADDI 301 300
+70 CPYI 301 305     # 305 = end time
+71 SUBI 305 304     # 304 = instructions used in this scheduling
+72 SET 3 301
+73 ADDI 301 300
+74 CPYI 301 306     # 306 = instr_used
+75 ADDI 306 304     # 306 = instr_used updated
+76 SET 306 307
+77 CPYI2 307 301    # updated instr_used
+
+# Set state to ready
+78 SET 5 301
+79 ADDI 301 300
+80 SET 0 306        # 0- ready
+81 SET 306 307
+82 CPYI2 307 301    # Set state to ready
+
+# Set its PC (from argument mem[12])
+83 SET 7 301
+84 ADDI 301 300
+85 SET 12 307
+86 CPYI2 307 301    # Set its return PC
+
+87 HLT
+
+
+# Thread 1 - Selection Sort (1000-1999)
+
+# Thread 2 - Linear Search (2000-2999)
+
+# Thread 3 - Fibonacci (3000-3999)
+
+# Thread 4 - Unused (4000-4999)
+
+# Thread 5 - Unused (5000-5999)
+
+# Thread 6 - Unused (6000-6999)
+
+# Thread 7 - Unused (7000-7999)
+
+# Thread 8 - Unused (8000-8999)
+
+# Thread 9 - Unused (9000-9999)
+
+# Thread 10 - Unused (10000-10999)
+
+End Instruction Section
