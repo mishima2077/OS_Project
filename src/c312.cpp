@@ -76,7 +76,7 @@ void C312::execute() {
             Hlt();
             break;
         case Opcode::USER:
-            User();
+            User(parseOperand(tokens[1]));
             break;
         case Opcode::SYSCALL_PRN:
             SyscallPrn(parseOperand(tokens[2]));
@@ -314,9 +314,19 @@ void C312::Hlt() {
     halted = true;
 }
 
-void C312::User() {
-    // USER: Switch to user mode
+void C312::User(long address) {
+    // USER: Switch to user mode and jump to indirect address mentioned
     mode = Mode::USER;
+
+    if (address < 0 || address >= memorySize)
+        throw std::out_of_range("USER: Address out of range.");
+
+    long indirectAddress = memory[address];
+
+    if (indirectAddress < 0 || indirectAddress >= memorySize)
+        throw std::out_of_range("USER: Indirect Address out of range.");
+
+    memory[0] = memory[indirectAddress]; // Set PC to threads pc
 }
 
 void C312::SyscallPrn(long address) {
@@ -450,10 +460,10 @@ bool C312::isValidTokenCount(const std::vector<std::string>& tokens, Opcode op) 
         case Opcode::PUSH:
         case Opcode::POP:
         case Opcode::CALL:
+        case Opcode::USER:
             return tokens.size() == 2;
         case Opcode::RET:
         case Opcode::HLT:
-        case Opcode::USER:
             return tokens.size() == 1;
         case Opcode::SYSCALL_PRN:
             return tokens.size() == 3;

@@ -59,7 +59,7 @@ private:
     void Call(long address);
     void Ret();
     void Hlt();
-    void User();
+    void User(long address);
     void SyscallPrn(long address);
     void SyscallHlt();
     void SyscallYield();
