@@ -1,0 +1,101 @@
+# Selection Sort Example
+
+Begin Data Section
+0 0     # PC
+1 999   # SP
+10 10   # N (number of elements)
+11 0    # i (outer loop)
+12 0    # j (inner loop)
+13 0    # min_idx
+14 0    # min_val
+15 0    # temp for swap
+16 0    # temp for swap
+17 0    # temp for loop checks
+18 0    # temp for loop checks
+
+# Data Array (20-29)
+20 52
+21 2
+22 104
+23 1
+24 12
+25 -12
+26 199
+27 591
+28 54
+29 0
+End Data Section
+
+Begin Instruction Section
+0 Set 0 11      # i = 0
+
+# Outer_loop: 
+1 CPY 11 13     # min_idx = i
+2 CPY 11 12     # j = i
+
+# load min_val from array[i]
+3 CPY 11 14
+4 ADD 14 20     # min_val = i + base array address
+5 CPYI 14 15
+6 CPY 15 14     # min_val = array[i]
+
+7 ADD 12 1      # j = j + 1
+
+# Inner_loop:
+
+# Index check
+8 CPY 12 17
+9 CPY 10 18
+10 SUBI 18 17
+11 JIF 17 40            # If j >= N, break, after_inner
+
+# Current = array[j]
+12 CPY 12 16
+13 ADD 16 20
+14 CPYI 16 15
+15 CPY 15 16            # current = array[j]
+
+# if current < min_val
+16 CPY 16 15
+17 CPY 14 19
+18 SUBI 15 19           # 19 = current - min
+19 JIF 19 30            # Update_min
+
+# continue
+20 ADD 12 1
+21 SET 8 0              # Loop back to inner_loop
+
+# Update_Min:
+30 CPY 12 13            # min_idx = j
+31 CPY 16 14            # min_val = current
+32 SET 20 0             # continue inner loop
+
+# After_inner:
+# swap array[i] and array[min_idx]
+40 CPY 11 15
+41 ADD 15 20
+42 CPYI 15 16           # temp = array[i]
+43 CPY 13 17
+44 ADD 17 20
+45 CPYI 17 18           # temp2 = array[min_idx]
+46 SET 50 0             # Swap
+
+# Swap, HACK HACK HACK
+50 CPY 18 19
+51 SET 19 18
+52 CPYI2 18 15
+53 CPY 16 19
+54 SET 19 16
+55 CPYI2 16 17
+56 SET 60 0
+
+# Next i
+60 ADD 11 1
+61 CPY 11 17
+62 CPY 10 18
+63 SUBI 18 17
+64 JIF 17 70
+65 SET 1 0              # Outer_loop
+
+# End:
+70 HLT

@@ -1,0 +1,501 @@
+# Operating System
+
+Begin Data Section
+0 0     # PC (OS starts at 0)
+1 999   # SP (OS stack pointer)
+2 0
+3 0
+4 0     # OS Status, set to Startup
+5 0     # Currently running thread, disregarding OS
+
+# Thread Table (starts at 100, 10 cells per thread)
+# Fields: [ID, start, end, instr_used, halted, state, blocked, PC, SP, unused]
+
+# ID: thread ID (0 to 10)
+# Start: Starting time of the thread
+# End: End time of the thread
+# Instr_used: How many instructions used since scheduled
+# Halted: 0-not halted, 1-halted
+# State: 0-ready, 1-running, 2-blocked
+# Blocked: remanining instruction counter for blocking
+# PC: Program counter where thread will continue
+# SP: Stack pointer of the thread
+
+# OS thread table (thread 0)
+100 0    # ID
+101 0    # start time
+102 0    # end time
+103 0    # instructions used
+104 0    # halted
+105 1    # state (1 = running)
+106 0    # blocked counter
+107 0    # PC
+108 999  # SP
+109 0    # unused
+
+# Thread 1 table
+110 1
+111 0
+112 0
+113 0
+114 0
+115 0    # state (0 = ready)
+116 0
+117 1000 # PC
+118 1999 # SP
+119 0
+
+# Thread 2 table
+120 2
+121 0
+122 0
+123 0
+124 0
+125 0
+126 0
+127 2000
+128 2999
+129 0
+
+# Thread 3 table
+130 3
+131 0
+132 0
+133 0
+134 0
+135 0
+136 0
+137 3000
+138 3999
+139 0
+
+# Thread 4 table
+140 4
+141 0
+142 0
+143 0
+144 0
+145 0
+146 0
+147 4000
+148 4999
+149 0
+
+# Thread 5 table
+150 5
+151 0
+152 0
+153 0
+154 0
+155 0
+156 0
+157 5000
+158 5999
+159 0
+
+# Thread 6 table
+160 6
+161 0
+162 0
+163 0
+164 0
+165 0
+166 0
+167 6000
+168 6999
+169 0
+
+# Thread 7 table
+170 7
+171 0
+172 0
+173 0
+174 0
+175 0
+176 0
+177 7000
+178 7999
+179 0
+
+# Thread 8 table
+180 8
+181 0
+182 0
+183 0
+184 0
+185 0
+186 0
+187 8000
+188 8999
+189 0
+
+# Thread 9 table
+190 9
+191 0
+192 0
+193 0
+194 0
+195 0
+196 0
+197 9000
+198 9999
+199 0
+
+# Thread 10 table
+200 10
+201 0
+202 0
+203 0
+204 0
+205 0
+206 0
+207 10000
+208 10999
+209 0
+
+# =======================================================================
+# Data for 2nd Thread (2000-2999)
+# Linear Search
+
+2000 20     # N (num of elements)
+2001 862    # Key to find
+2002 0      # Found position (-1 if none found)
+2003 0      # Current index (i)
+2004 0      # Current address
+
+# Data Array
+2010 124
+2011 463
+2012 5667
+2013 1267
+2014 8123
+2015 1234
+2016 112
+2017 163
+2018 556
+2019 827
+2020 2095
+2021 397
+2022 18942
+2023 104
+2024 852
+2025 5767
+2026 121
+2027 862    # Key
+2028 9999
+2029 32
+# =======================================================================
+
+End Data Section
+
+Begin Instruction Section
+# =======================================================================
+# OS Thread (0-999)
+# Mem[4] = 0 means startup, 1 means illegal access, 2 means syscall/running
+# Mem[5] contains thread ID of the illegal access.
+
+0 CPY 4 300     # 300 = status
+1 JIF 300 5     # If startup, continue
+2 ADD 300 -1
+3 JIF 300 400   # If illegal access, go to subroutine
+4 SET 50 0      # Only one option left, syscall handler
+
+5 SET 0 5
+6 SET 200 0     # Call Scheduler
+
+# =======================================================================
+# Syscall Handler Subroutine
+# First, set the start and end times for os and calling thread
+
+# Mem locations:
+# 10: Calling thread ID
+# 11: syscall type
+# 12: return PC
+# 300: thread table base for calling thread
+# 301: fiels address
+
+50 CPY 3 101    # Start time for OS
+
+# Calculate thread table base for calling thread: 100 + (thread_id * 10)
+51 SET 100 300       # 300 = thread table base
+52 CPY 10 302        # 302 = thread id (copy for loop)
+53 SET 0 303         # 303 = offset accumulator
+54 JIF 302 58        # If thread id == 0, skip loop
+55 ADD 303 10        # offset += 10
+56 ADD 302 -1        # thread id--
+57 SET 54 0          # loop back if not zero
+58 ADDI 300 303      # 300 = 100 + (thread_id * 10)
+
+# Set end time for calling thread
+59 SET 2 301        # 301 = offset for end time
+60 ADDI 301 300     # 301 = thread_base + offset
+61 SET 101 302      # 101 contains end time(OS start time)
+62 CPYI2 302 301    # Copy end time to end_time of calling thread
+
+63 SET 1 105      # OS state = running
+64 CPY 108 1      # Set actual SP to OS SP
+
+# Calculate instr_used and set it
+65 SET 1 301        # Offset for start time
+66 ADDI 301 300     # index for start time
+67 CPYI 301 304     # 304 = start time
+68 SET 2 301
+69 ADDI 301 300
+70 CPYI 301 305     # 305 = end time
+71 SUBI 305 304     # 304 = instructions used in this scheduling
+72 SET 3 301
+73 ADDI 301 300
+74 CPYI 301 306     # 306 = instr_used
+75 ADDI 306 304     # 306 = instr_used updated
+76 SET 306 307
+77 CPYI2 307 301    # updated instr_used
+
+# Set state to ready
+78 SET 5 301
+79 ADDI 301 300
+80 SET 0 306        # 0- ready
+81 SET 306 307
+82 CPYI2 307 301    # Set state to ready
+
+# Set its PC (from argument mem[12])
+83 SET 7 301
+84 ADDI 301 300
+85 SET 12 307
+86 CPYI2 307 301    # Set its return PC
+87 SET 90 0         # continue
+
+# Syscall type in 11: 0=YIELD, 1=HLT, 2=PRN
+
+# Check for PRN
+90 SET 2 308
+91 CPY 11 309
+92 SUBI 308 309
+93 JIF 309 120      # Jump to PRN subroutine
+
+# Check for HLT
+94 SET 1 308
+95 CPY 11 309
+96 SUBI 308 309
+97 JIF 309 110      # Jump to HLT subroutine
+
+# Otherwise, it's YIELD, we don't have to do anything
+# Just set PC to Scheduler subroutine
+98 SET 200 0
+
+# HLT handler:
+110 SET 4 301
+111 ADDI 301 300
+112 SET 1 305
+113 SET 305 306
+114 CPYI2 306 301   # Set halted to 1
+115 SET 200 0       # Jump to scheduler
+
+# PRN handler:
+120 SET 6 301
+121 ADDI 301 300
+122 SET 100 305
+123 SET 305 306
+124 CPYI2 306 301   # Set blocked counter to 100
+
+125 SET 5 301
+126 ADDI 301 300
+127 SET 2 305
+128 SET 305 306
+129 CPYI2 306 301   # Set state to blocked
+130 SET 200 0       # Jump to scheduler
+
+# =======================================================================
+# Scheduler Subroutine
+# Important Memory Locations:
+# Mem[5]  : Contains last running thread, disregards the OS
+
+# Increment last running thread ID
+200 ADD 5 1
+201 CPY 5 310           # Candidate
+202 SET 11 311
+203 SUBI 311 310        # 310 = 11 - candidate
+204 JIF 310 300         # If candidate is 11, call check_halt subroutine
+                        # Checks if there is a thread to run, if not halts the OS
+
+# Calculate thread table base
+205 SET 100 300
+206 CPY 5 312
+207 SET 0 313
+208 JIF 312 212
+209 ADD 313 10
+210 ADD 312 -1
+211 SET 208 0
+212 ADDI 300 313        # 300 = 100 + (thread_id * 10)
+
+# Check halted (offset 4)
+213 SET 4 301
+214 ADDI 301 300
+215 CPYI 301 314        # 314 = halted field
+216 SET 1 315
+217 SUBI 315 314        # 314 = 1 - halted
+218 JIF 314 200         # If halted == 1, try next thread
+
+# Check blocked (offset 6)
+219 SET 6 301
+220 ADDI 301 300
+221 CPYI 301 316
+222 JIF 316 250         # If blocked <= 0, we can use this thread
+
+# If blocked > 0, reduce it by (current cycle - end time)
+223 SET 2 318
+224 ADDI 318 300
+225 CPYI 318 319        # 319 = end time
+226 CPY 3 320           # 320 = current time
+227 SUBI 320 319        # 319 = current - end
+228 CPYI 301 321        # 321 = blocked
+229 SUBI 321 319        # 319 = blocked - (current - end)
+230 JIF 319 235         # if <= 0, unblock
+
+# Still blocked, update and try next thread
+231 SET 319 322
+232 CPYI2 322 301       # Update blocked counter
+233 SET 200 0           # Try next thread
+
+# Unblock, set blocked counter to 0, state to ready
+235 SET 0 322
+236 SET 322 323
+237 CPYI2 323 301       # blocked = 0
+238 SET 5 301
+239 ADDI 301 300
+240 CPYI2 323 301       # state = ready
+241 SET 250 0           # Thread is ready to use
+
+# Found thread to schedule, Set SP, start time and state
+250 SET 8 301
+251 ADDI 301 300
+252 CPYI 301 1          # Set SP to threads SP
+
+253 SET 1 301
+254 ADDI 301 300
+255 CPY 3 325
+256 SET 325 326
+257 CPYI2 326 301       # start time = current cycle
+
+258 SET 5 301
+259 ADDI 301 300
+260 SET 1 327
+261 SET 327 328
+262 CPYI2 328 301       # state = running
+
+# Update OS thread table
+263 CPY 3 102           # set OS end time
+264 CPY 101 327         # 327 = start time
+265 SUBI 102 327        # 327 = end time - start time
+266 ADDI 327 103        # 327 = updated instr_used
+267 CPY 327 103         # instr_used updated
+268 SET 0 105           # state = ready
+
+# Set PC to threads PC (offset 7)
+269 SET 7 301
+270 ADDI 301 300
+271 USER 301            # Set to USER mode and switch to thread PC
+
+# =======================================================================
+# Check Halted Subroutine:
+# Check if every thread is halted, Halt OS if so
+
+300 JIF 114 320         # Jump to found_not_halted
+301 JIF 124 320
+302 JIF 134 320
+303 JIF 144 320
+304 JIF 154 320
+305 JIF 164 320
+306 JIF 174 320
+307 JIF 184 320
+308 JIF 194 320
+309 JIF 204 320
+
+# Not halted thread not found, halting the OS
+310 HLT 
+
+# Not halted thread found, calling scheduling
+320 SET 0 5
+321 SET 200 0           # Call scheduling
+
+# =======================================================================
+# Illegal Access Subroutine
+
+# Call syscall handler with HLT parameters
+400 CPY 5 10
+401 SET 1 11            # Code for HLT
+402 SET -1 12           # Return PC (will not be needed)
+403 SET 50 0            # Call syscall handler
+# =======================================================================
+
+# Thread 1 - Selection Sort (1000-1999)
+1000 SET -1 300         # Illegal
+
+# =======================================================================
+# Thread 2 - Linear Search (2000-2999)
+2000 SET -1 2002        # Set result -1
+2001 SET 0 2003         # Set i
+
+# loop_start
+2002 CPY 2003 2004      # address = i
+2003 ADD 2004 2010      # address = arr_base_address + i
+2004 CPYI 2004 2005     # 2005 = mem[address]
+2005 CPY 2001 2006      # 2006 = temp_key
+2006 SUBI 2005 2006     # 2006 = mem[address] - key
+2007 JIF 2006 2030      # check equal
+
+# Not Found
+2008 ADD 2003 1         # increment i
+2009 CPY 2003 2005      # 2005 = temp i
+2010 CPY 2000 2006      # 2006 = temp N
+2011 SUBI 2006 2005     # 2005 = N - i
+
+# Yield for Scheduling Purposes before loop
+2012 SYSCALL YIELD
+
+2013 JIF 2005 2021      # If i >= N, end search
+2014 SET 2002 0         # jmp to loop_start
+
+# check_equal:
+2030 CPYI 2004 2005     # 2005 = mem[address]
+2031 CPY 2001 2006      # 2006 = temp_key
+2032 SUBI 2006 2005     # 2005 = key - mem[address]
+                        # Now we check the other way around
+                        # If its still 0, that means they are equal
+    
+2033 JIF 2005 2020      # Key found
+2034 SET 2008 0         # Key not found
+
+# found:
+2020 CPY 2003 2002      # res = i
+
+# end:
+2021 SYSCALL PRN 2002   # print result
+2022 SYSCALL HLT
+
+# =======================================================================
+
+# Thread 3 - Fibonacci (3000-3999)
+3000 SYSCALL HLT
+
+# Thread 4 - Unused (4000-4999)
+4000 SYSCALL HLT
+
+# Thread 5 - Unused (5000-5999)
+5000 SYSCALL HLT
+
+# Thread 6 - Unused (6000-6999)
+6000 SYSCALL HLT
+
+# Thread 7 - Unused (7000-7999)
+7000 SYSCALL HLT
+
+# Thread 8 - Unused (8000-8999)
+8000 SYSCALL HLT
+
+# Thread 9 - Unused (9000-9999)
+9000 SYSCALL HLT
+
+# Thread 10 - Unused (10000-10999)
+10000 SYSCALL HLT
+
+End Instruction Section

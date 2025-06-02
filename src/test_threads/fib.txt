@@ -1,0 +1,52 @@
+# Fibonacci code
+# Code assumes that N will be positive (N >= 0)
+
+Begin Data Section
+0 0     # PC
+1 999   # SP
+10 10    # N - Print the first N terms
+11 1    # prev1
+12 0    # prev2
+13 0    # i
+21 0    # current
+20 0    # temp for comparisons
+End Data Section
+
+Begin Instruction Section
+
+# main_loop:
+0 CPY 13 20         # temp = i
+1 SUBI 10 20        # temp = N - i
+2 JIF 20 30         # if N - i == 0, end
+
+3 SET 0 20          # temp = 0
+4 SUBI 13 20        # temp = i - 0
+5 JIF 20 40         # if i == 0, print prev2
+
+6 SET 1 20          # temp = 2
+7 SUBI 13 20        # temp = i - 2
+8 JIF 20 50         # if i == 2, print prev1
+
+# Calculate next Fibonacci number
+9 SET 0 21          # current = 0
+10 ADDI 21 11       # current += prev1
+11 ADDI 21 12       # current += prev2
+12 CPY 11 12        # prev2 = prev1
+13 CPY 21 11        # prev1 = current
+14 SYSCALL PRN 21   # print current
+15 ADD 13 1         # i += 1
+16 SET 0 0          # jump to main_loop
+
+# Print prev2 if i == 1
+40 SYSCALL PRN 12
+41 ADD 13 1         # i += 1
+42 SET 0 0          # jump to main_loop
+
+# Print prev1 if i == 2
+50 SYSCALL PRN 11
+51 ADD 13 1         # i += 1
+52 SET 0 0          # jump to main_loop
+
+# END:
+30 HLT
+End Instruction Section
